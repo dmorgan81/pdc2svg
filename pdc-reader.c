@@ -85,35 +85,19 @@ static inline void prv_read_viewbox(struct viewbox *viewbox, char *bytes) {
     memcpy(&viewbox->h, &bytes[2], sizeof(int16_t));
 }
 
-static void prv_read_image(FILE *fp, char *name) {
-    uint32_t size;
-    if (fread(&size, sizeof(uint32_t), 1, fp) != 1) {
-        fprintf(stderr, "Error reading file: %s\n", name);
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    void *ret = mmap(0, size, PROT_READ, MAP_PRIVATE, fileno(fp), 0);
-    if (ret == MAP_FAILED) {
-        fprintf(stderr, "mmap: %s\n", strerror(errno));
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    char *bytes = (char*) ret;
-
+static void prv_read_image(char *bytes) {
     struct pdc_image image;
-    image.version = (uint8_t) bytes[8];
-    prv_read_viewbox(&image.viewbox, bytes + 10);
+    image.version = (uint8_t) bytes[0];
+    prv_read_viewbox(&image.viewbox, bytes + 2);
 
     printf("%d %d %d\n", image.version, image.viewbox.w, image.viewbox.h);
 
-    prv_read_pdc_list(&image.command_list, bytes + 14);
+    prv_read_pdc_list(&image.command_list, bytes + 6);
     printf("%d\n", image.command_list.num_commands);
 
     for (size_t i = 0; i < image.command_list.num_commands; i++) {
         struct pdc command = image.command_list.commands[i];
-        printf("\t%d %d\n", command.type, command.num_points);
+        printf("%ld:\t%d %d\n", i, command.type, command.num_points);
         for (size_t j = 0; j < command.num_points; j++) {
             printf("\t\t%d %d\n", command.points[j].x, command.points[j].y);
         }
@@ -121,15 +105,26 @@ static void prv_read_image(FILE *fp, char *name) {
         free(command.points);
     }
     free(image.command_list.commands);
+}
 
-    if (munmap(ret, size) == -1) {
-        fprintf(stderr, "%s\n", strerror(errno));
+static void prv_read_seq(char *bytes) {}
+
+static char *prv_read_bytes(FILE *fp, char *name) {
+    uint32_t size;
+    if (fread(&size, sizeof(uint32_t), 1, fp) != 1) {
+        fprintf(stderr, "Error reading file: %s\n", name);
         fclose(fp);
         exit(EXIT_FAILURE);
     }
-}
 
-static void prv_read_seq(FILE *fp, char *name) {}
+    char *bytes = malloc(size);
+    if (fread(bytes, 1, size, fp) != size) {
+        fprintf(stderr, "Error reading file: %s\n", name);
+        fclose(fp);
+        exit(EXIT_FAILURE);
+    }
+    return bytes;
+}
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -153,15 +148,20 @@ int main(int argc, char *argv[]) {
     }
     magic[LEN_MAGIC] = '\0';
 
+    char *bytes = NULL;
     if (strncmp(magic, "PDCI", LEN_MAGIC) == 0) {
-        prv_read_image(fp, argv[1]);
+        bytes = prv_read_bytes(fp, argv[1]);
+        prv_read_image(bytes);
     } else if (strncmp(magic, "PDCS", LEN_MAGIC) == 0) {
-        prv_read_seq(fp, argv[1]);
+        bytes = prv_read_bytes(fp, argv[1]);
+        prv_read_seq(bytes);
     } else {
         fprintf(stderr, "Not a PDC file: %s\n", argv[1]);
         fclose(fp);
         exit(EXIT_FAILURE);
     }
+
+    free(bytes);
 
     fclose(fp);
     fp = NULL;
