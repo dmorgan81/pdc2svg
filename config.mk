@@ -1,4 +1,4 @@
-NAME = pdc-reader
+NAME = pdc2svg
 
 # Customize below to fit your system
 
