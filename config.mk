@@ -8,7 +8,7 @@ MANPREFIX = ${PREFIX}/share/man
 
 # includes and libs
 INCS = -I. -I/usr/include
-LIBS = -L/usr/lib -lc
+LIBS = -L/usr/lib -lc -ltalloc
 
 # flags
 CFLAGS = -g -std=c99 -pedantic -Wall -O0 -D_POSIX_SOURCE ${INCS} ${CPPFLAGS}
