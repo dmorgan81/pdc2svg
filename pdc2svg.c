@@ -11,6 +11,13 @@
 
 static const uint8_t LEN_MAGIC = 4;
 
+enum CommandType {
+    CommandTypeInvalid = 0,
+    CommandTypePath,
+    CommandTypeCircle,
+    CommandTypePrecisePath
+};
+
 static char *prv_read_bytes(void *ctx, FILE *fp, char *name) {
     uint32_t size;
     if (fread(&size, sizeof(uint32_t), 1, fp) != 1) {
@@ -31,20 +38,32 @@ static char *prv_read_bytes(void *ctx, FILE *fp, char *name) {
 static void prv_output_command_list_to_svg(struct pdc_list *list, struct svg *svg) {
     for (size_t i = 0; i < list->num_commands; i++) {
         struct pdc command = list->commands[i];
-        struct svg_path *path = svg_create_path(svg);
-        svg_path_fill_color(path, command.fill_color);
-        svg_path_stroke_color(path, command.stroke_color);
-        svg_path_stroke_width(path, command.stroke_width);
-        svg_path_mark_hidden(path, command.flags & 1);
 
-        struct point *points = command.points;
-        svg_path_move_to(path, points[0].x, points[0].y);
-        for (size_t j = 1; j < command.num_points; j++) {
-            svg_path_line_to(path, points[j].x, points[j].y);
+        if (command.type == CommandTypePath || command.type == CommandTypePrecisePath) {
+            struct svg_path *path = svg_create_path(svg);
+            svg_path_fill_color(path, command.fill_color);
+            svg_path_stroke_color(path, command.stroke_color);
+            svg_path_stroke_width(path, command.stroke_width);
+            svg_path_mark_hidden(path, command.flags & 1);
+
+            uint8_t scale = command.type == CommandTypePrecisePath ? 8 : 1;
+            struct point *points = command.points;
+            svg_path_move_to(path, points[0].x / scale, points[0].y / scale);
+            for (size_t j = 1; j < command.num_points; j++) {
+                svg_path_line_to(path, points[j].x / scale, points[j].y / scale);
+            }
+            svg_path_finish(path, command.path_open_or_radius & 1);
+            talloc_free(path);
+        } else if (command.type == CommandTypeCircle) {
+            struct point point = command.points[0];
+            struct svg_circle *circle = svg_create_circle(svg, point.x, point.y, command.path_open_or_radius);
+            svg_circle_fill_color(circle, command.fill_color);
+            svg_circle_stroke_color(circle, command.stroke_color);
+            svg_circle_stroke_width(circle, command.stroke_width);
+            svg_circle_mark_hidden(circle, command.flags & 1);
+            svg_circle_finish(circle);
+            talloc_free(circle);
         }
-        svg_path_finish(path, command.path_open_or_radius & 1);
-
-        talloc_free(path);
     }
 }
 

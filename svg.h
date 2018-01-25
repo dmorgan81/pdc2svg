@@ -20,4 +20,13 @@ void svg_path_line_to(struct svg_path *path, int16_t x, int16_t y);
 void svg_path_mark_hidden(struct svg_path *path, bool hidden);
 void svg_path_finish(struct svg_path *path, bool open);
 
+struct svg_circle;
+
+struct svg_circle *svg_create_circle(struct svg *svg, int16_t x, int16_t y, uint16_t r);
+void svg_circle_fill_color(struct svg_circle *circle, uint8_t color);
+void svg_circle_stroke_color(struct svg_circle *circle, uint8_t color);
+void svg_circle_stroke_width(struct svg_circle *circle, uint8_t width);
+void svg_circle_mark_hidden(struct svg_circle *circle, bool hidden);
+void svg_circle_finish(struct svg_circle *circle);
+
 #endif

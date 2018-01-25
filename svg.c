@@ -38,15 +38,21 @@ struct svg_path *svg_create_path(struct svg *svg) {
     return path;
 }
 
+static void prv_color_to_rgba(FILE *stream, uint8_t color) {
+    fprintf(stream, "rgba(%d,%d,%d,%d)",
+        (color >> 4 & 3) / 3 * 255,
+        (color >> 2 & 3) / 3 * 255,
+        (color >> 0 & 3) / 3 * 255,
+        (color >> 6 & 3) / 3 * 1);
+}
+
 void svg_path_fill_color(struct svg_path *path, uint8_t color) {
     if (color == 0) {
         fprintf(path->stream, " fill=\"rgba(0,0,0,0)\"");
     } else {
-        fprintf(path->stream, " fill=\"rgba(%d,%d,%d,%d)\"",
-            (color >> 4 & 3) / 3 * 255,
-            (color >> 2 & 3) / 3 * 255,
-            (color >> 0 & 3) / 3 * 255,
-            (color >> 6 & 3) / 3 * 1);
+        fprintf(path->stream, " fill=\"");
+        prv_color_to_rgba(path->stream, color);
+        fprintf(path->stream, "\"");
     }
 }
 
@@ -54,11 +60,9 @@ void svg_path_stroke_color(struct svg_path *path, uint8_t color) {
     if (color == 0) {
         fprintf(path->stream, " stroke=\"rgba(0,0,0,0)\"");
     } else {
-        fprintf(path->stream, " stroke=\"rgba(%d,%d,%d,%d)\"",
-            (color >> 4 & 3) / 3 * 255,
-            (color >> 2 & 3) / 3 * 255,
-            (color >> 0 & 3) / 3 * 255,
-            (color >> 6 & 3) / 3 * 1);
+        fprintf(path->stream, " stroke=\"");
+        prv_color_to_rgba(path->stream, color);
+        fprintf(path->stream, "\"");
     }
 }
 
@@ -87,4 +91,47 @@ void svg_path_finish(struct svg_path *path, bool open) {
         path->d = NULL;
     }
     fprintf(path->stream, " />\n");
+}
+
+struct svg_circle {
+    FILE *stream;
+};
+
+struct svg_circle *svg_create_circle(struct svg *svg, int16_t x, int16_t y, uint16_t r) {
+    struct svg_circle *circle = talloc(svg, struct svg_circle);
+    circle->stream = svg->stream;
+    fprintf(circle->stream, "\t<circle cx=\"%d\" cy=\"%d\" r=\"%d\"", x, y, r);
+    return circle;
+}
+
+void svg_circle_fill_color(struct svg_circle *circle, uint8_t color) {
+    if (color == 0) {
+        fprintf(circle->stream, " fill=\"rgba(0,0,0,0)\"");
+    } else {
+        fprintf(circle->stream, " fill=\"");
+        prv_color_to_rgba(circle->stream, color);
+        fprintf(circle->stream, "\"");
+    }
+}
+
+void svg_circle_stroke_color(struct svg_circle *circle, uint8_t color) {
+    if (color == 0) {
+        fprintf(circle->stream, " stroke=\"rgba(0,0,0,0)\"");
+    } else {
+        fprintf(circle->stream, " stroke=\"");
+        prv_color_to_rgba(circle->stream, color);
+        fprintf(circle->stream, "\"");
+    }
+}
+
+void svg_circle_stroke_width(struct svg_circle *circle, uint8_t width) {
+    fprintf(circle->stream, " stroke-width=\"%d\"", width);
+}
+
+void svg_circle_mark_hidden(struct svg_circle *circle, bool hidden) {
+    if (hidden) fprintf(circle->stream, " display=\"none\"");
+}
+
+void svg_circle_finish(struct svg_circle *circle) {
+    fprintf(circle->stream, " />\n");
 }
