@@ -16,13 +16,10 @@ struct viewbox {
 struct __attribute__((packed)) pdc {
     uint8_t type;
     uint8_t flags;
-    int8_t stroke_color;
+    uint8_t stroke_color;
     uint8_t stroke_width;
-    int8_t fill_color;
-    union {
-        uint8_t path_type;
-        uint16_t radius;
-    } path_type_or_radius;
+    uint8_t fill_color;
+    uint16_t path_open_or_radius;
     uint16_t num_points;
     struct point *points;
 };

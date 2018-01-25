@@ -47,7 +47,7 @@ static void prv_print_pdc(struct pdc *p, FILE *stream) {
 }
 
 struct pdc_image *pdc_image_create(char *bytes) {
-    struct pdc_image *image = talloc(bytes, struct pdc_image);
+    struct pdc_image *image = talloc(NULL, struct pdc_image);
     image->version = (uint8_t) bytes[0];
     prv_read_viewbox(&image->viewbox, bytes + 2);
     prv_read_pdc_list(image, &image->command_list, bytes + 6);
@@ -66,7 +66,7 @@ void pdc_image_print(struct pdc_image *image, FILE *stream) {
 }
 
 struct pdc_seq *pdc_seq_create(char *bytes) {
-    struct pdc_seq *seq = talloc(bytes, struct pdc_seq);
+    struct pdc_seq *seq = talloc(NULL, struct pdc_seq);
     seq->version = (uint8_t) bytes[0];
     prv_read_viewbox(&seq->viewbox, bytes + 2);
     memcpy(&seq->play_count, bytes + 6, sizeof(int16_t));
