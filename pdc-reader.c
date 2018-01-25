@@ -170,7 +170,7 @@ static char *prv_read_bytes(void *ctx, FILE *fp, char *name) {
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "usage: pdc-reader PDC\n");
+        fprintf(stderr, "usage: %s PDC\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
