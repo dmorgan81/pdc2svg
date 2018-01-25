@@ -76,6 +76,10 @@ void svg_path_line_to(struct svg_path *path, int16_t x, int16_t y) {
     path->d = talloc_asprintf_append(path->d, "L%d,%d", x, y);
 }
 
+void svg_path_mark_hidden(struct svg_path *path, bool hidden) {
+    if (hidden) fprintf(path->stream, " display=\"none\"");
+}
+
 void svg_path_finish(struct svg_path *path, bool open) {
     if (path->d) {
         fprintf(path->stream, " d=\"%s%s\"", path->d, open ? "" : "Z");

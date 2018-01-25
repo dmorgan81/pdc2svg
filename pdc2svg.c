@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,11 +31,11 @@ static char *prv_read_bytes(void *ctx, FILE *fp, char *name) {
 static void prv_output_command_list_to_svg(struct pdc_list *list, struct svg *svg) {
     for (size_t i = 0; i < list->num_commands; i++) {
         struct pdc command = list->commands[i];
-        if (command.flags & 1) continue;
         struct svg_path *path = svg_create_path(svg);
         svg_path_fill_color(path, command.fill_color);
         svg_path_stroke_color(path, command.stroke_color);
         svg_path_stroke_width(path, command.stroke_width);
+        svg_path_mark_hidden(path, command.flags & 1);
 
         struct point *points = command.points;
         svg_path_move_to(path, points[0].x, points[0].y);

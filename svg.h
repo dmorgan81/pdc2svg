@@ -17,6 +17,7 @@ void svg_path_stroke_color(struct svg_path *path, uint8_t color);
 void svg_path_stroke_width(struct svg_path *path, uint8_t width);
 void svg_path_move_to(struct svg_path *path, int16_t x, int16_t y);
 void svg_path_line_to(struct svg_path *path, int16_t x, int16_t y);
+void svg_path_mark_hidden(struct svg_path *path, bool hidden);
 void svg_path_finish(struct svg_path *path, bool open);
 
 #endif
