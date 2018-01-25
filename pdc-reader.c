@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
 #include <talloc.h>
 
 static const uint8_t LEN_MAGIC = 4;
