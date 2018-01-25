@@ -62,27 +62,42 @@ static inline void prv_read_point(struct point *point, char *bytes) {
     memcpy(&point->y, &bytes[2], sizeof(int16_t));
 }
 
-static void prv_read_pdc(struct pdc *pdc, char *bytes) {
-    memcpy(pdc, &bytes[0], 9);
+static size_t prv_read_pdc(struct pdc *pdc, char *bytes) {
+    size_t size = sizeof(struct pdc) - sizeof(struct point*);
+    memcpy(pdc, &bytes[0], size);
     pdc->points = malloc(sizeof(struct point) * pdc->num_points);
     for (size_t i = 0; i < pdc->num_points; i++) {
-        prv_read_point(&pdc->points[i], bytes + 9 + (4 * i));
+        prv_read_point(&pdc->points[i], bytes + size + (sizeof(struct point) * i));
     }
+    return size + (sizeof(struct point) * pdc->num_points);
 }
 
-static void prv_read_pdc_list(struct pdc_list *list, char *bytes) {
+static size_t prv_read_pdc_list(struct pdc_list *list, char *bytes) {
     memcpy(&list->num_commands, &bytes[0], sizeof(uint16_t));
     list->commands = malloc(sizeof(struct pdc) * list->num_commands);
     size_t offset = 2;
     for (size_t i = 0; i < list->num_commands; i++) {
-        prv_read_pdc(&list->commands[i], bytes + offset);
-        offset += 9 + (sizeof(struct point) * list->commands[i].num_points);
+        offset += prv_read_pdc(&list->commands[i], bytes + offset);
     }
+    return (sizeof(struct pdc_list) - sizeof(struct pdc*)) + (offset - 2);
+}
+
+static size_t prv_read_pdc_frame(struct pdc_frame *frame, char *bytes) {
+    memcpy(&frame->duration, &bytes[0], sizeof(uint16_t));
+    size_t size = sizeof(struct pdc_frame) - sizeof(struct pdc_list);
+    return size + prv_read_pdc_list(&frame->command_list, bytes + 2);
 }
 
 static inline void prv_read_viewbox(struct viewbox *viewbox, char *bytes) {
     memcpy(&viewbox->w, &bytes[0], sizeof(int16_t));
     memcpy(&viewbox->h, &bytes[2], sizeof(int16_t));
+}
+
+static void prv_print_pdc(struct pdc *p) {
+    printf("%d %d\n", p->type, p->num_points);
+    for (size_t i = 0; i < p->num_points; i++) {
+        printf("\t\t%d,%d\n", p->points[i].x, p->points[i].y);
+    }
 }
 
 static void prv_read_image(char *bytes) {
@@ -97,17 +112,43 @@ static void prv_read_image(char *bytes) {
 
     for (size_t i = 0; i < image.command_list.num_commands; i++) {
         struct pdc command = image.command_list.commands[i];
-        printf("%ld:\t%d %d\n", i, command.type, command.num_points);
-        for (size_t j = 0; j < command.num_points; j++) {
-            printf("\t\t%d %d\n", command.points[j].x, command.points[j].y);
-        }
-
+        printf("\tpdc %ld: ", i);
+        prv_print_pdc(&command);
         free(command.points);
     }
     free(image.command_list.commands);
 }
 
-static void prv_read_seq(char *bytes) {}
+static void prv_read_seq(char *bytes) {
+    struct pdc_seq seq;
+    seq.version = (uint8_t) bytes[0];
+    prv_read_viewbox(&seq.viewbox, bytes + 2);
+    memcpy(&seq.play_count, bytes + 6, sizeof(int16_t));
+    memcpy(&seq.frame_count, bytes + 8, sizeof(int16_t));
+
+    seq.frames = malloc(sizeof(struct pdc_frame) * seq.frame_count);
+
+    size_t offset = 10;
+    for (size_t i = 0; i < seq.frame_count; i++) {
+        offset += prv_read_pdc_frame(&seq.frames[i], bytes + offset);
+    }
+
+    printf("%d %d %d\n", seq.version, seq.viewbox.w, seq.viewbox.h);
+    printf("%d %d\n", seq.play_count, seq.frame_count);
+
+    for (size_t i = 0; i < seq.frame_count; i++) {
+        struct pdc_frame frame = seq.frames[i];
+        printf("frame %ld: %d\n", i, frame.duration);
+        for (size_t j = 0; j < frame.command_list.num_commands; j++) {
+            struct pdc command = frame.command_list.commands[j];
+            printf("\tpdc %ld: ", j);
+            prv_print_pdc(&command);
+            free(command.points);
+        }
+        free(frame.command_list.commands);
+    }
+    free(seq.frames);
+}
 
 static char *prv_read_bytes(FILE *fp, char *name) {
     uint32_t size;
