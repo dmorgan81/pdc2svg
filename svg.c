@@ -4,6 +4,7 @@
 #include <string.h>
 #include <talloc.h>
 
+#include "color.h"
 #include "svg.h"
 
 struct svg {
@@ -38,20 +39,12 @@ struct svg_path *svg_create_path(struct svg *svg) {
     return path;
 }
 
-static void prv_color_to_rgba(FILE *stream, uint8_t color) {
-    fprintf(stream, "rgba(%d,%d,%d,%d)",
-        (color >> 4 & 3) / 3 * 255,
-        (color >> 2 & 3) / 3 * 255,
-        (color >> 0 & 3) / 3 * 255,
-        (color >> 6 & 3) / 3 * 1);
-}
-
 void svg_path_fill_color(struct svg_path *path, uint8_t color) {
     if (color == 0) {
         fprintf(path->stream, " fill=\"rgba(0,0,0,0)\"");
     } else {
         fprintf(path->stream, " fill=\"");
-        prv_color_to_rgba(path->stream, color);
+        print_color_to_rgba(path->stream, color);
         fprintf(path->stream, "\"");
     }
 }
@@ -61,7 +54,7 @@ void svg_path_stroke_color(struct svg_path *path, uint8_t color) {
         fprintf(path->stream, " stroke=\"rgba(0,0,0,0)\"");
     } else {
         fprintf(path->stream, " stroke=\"");
-        prv_color_to_rgba(path->stream, color);
+        print_color_to_rgba(path->stream, color);
         fprintf(path->stream, "\"");
     }
 }
@@ -90,11 +83,7 @@ void svg_path_finish(struct svg_path *path, bool open) {
         talloc_free(path->d);
         path->d = NULL;
     }
-    fprintf(path->stream, ">\n");
-}
-
-void svg_path_close(struct svg_path *path) {
-    fprintf(path->stream, "</path>\n");
+    fprintf(path->stream, "/>\n");
 }
 
 struct svg_circle {
@@ -113,7 +102,7 @@ void svg_circle_fill_color(struct svg_circle *circle, uint8_t color) {
         fprintf(circle->stream, " fill=\"rgba(0,0,0,0)\"");
     } else {
         fprintf(circle->stream, " fill=\"");
-        prv_color_to_rgba(circle->stream, color);
+        print_color_to_rgba(circle->stream, color);
         fprintf(circle->stream, "\"");
     }
 }
@@ -123,7 +112,7 @@ void svg_circle_stroke_color(struct svg_circle *circle, uint8_t color) {
         fprintf(circle->stream, " stroke=\"rgba(0,0,0,0)\"");
     } else {
         fprintf(circle->stream, " stroke=\"");
-        prv_color_to_rgba(circle->stream, color);
+        print_color_to_rgba(circle->stream, color);
         fprintf(circle->stream, "\"");
     }
 }
@@ -137,11 +126,7 @@ void svg_circle_mark_hidden(struct svg_circle *circle, bool hidden) {
 }
 
 void svg_circle_finish(struct svg_circle *circle) {
-    fprintf(circle->stream, ">\n");
-}
-
-void svg_circle_close(struct svg_circle *circle) {
-    fprintf(circle->stream, "</circle>\n");
+    fprintf(circle->stream, "/>\n");
 }
 
 struct svg_g {
@@ -156,5 +141,5 @@ struct svg_g *svg_create_g(struct svg *svg, int16_t y) {
 }
 
 void svg_g_finish(struct svg_g *g) {
-    fprintf(g->stream, "</g>");
+    fprintf(g->stream, "</g>\n");
 }

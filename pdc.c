@@ -1,6 +1,7 @@
 #include <string.h>
 #include <talloc.h>
 
+#include "color.h"
 #include "pdc.h"
 
 static inline void prv_read_point(struct point *point, char *bytes) {
@@ -39,10 +40,18 @@ static inline void prv_read_viewbox(struct viewbox *viewbox, char *bytes) {
     memcpy(&viewbox->h, &bytes[2], sizeof(int16_t));
 }
 
-static void prv_print_pdc(struct pdc *p, FILE *stream) {
-    fprintf(stream, "%d %d\n", p->type, p->num_points);
+static void prv_print_pdc(struct pdc *p, FILE *stream, uint8_t indent) {
+    fprintf(stream, "t:%d r:%d n:%d sw:%d p:%d\n", p->type, p->path_open_or_radius, p->num_points, p->stroke_width, p->num_points);
+    for (size_t i = 0; i < indent - 1; i++) fprintf(stream, "\t");
+    fprintf(stream, "sc:");
+    print_color_to_rgba(stream, p->stroke_color);
+    fprintf(stream, " fc:");
+    print_color_to_rgba(stream, p->fill_color);
+    fprintf(stream, "\n");
+
     for (size_t i = 0; i < p->num_points; i++) {
-        fprintf(stream, "\t\t%d,%d\n", p->points[i].x, p->points[i].y);
+        for (size_t j = 0; j < indent; j++) fprintf(stream, "\t");
+        fprintf(stream, "x:%d,y:%d\n", p->points[i].x, p->points[i].y);
     }
 }
 
@@ -55,13 +64,12 @@ struct pdc_image *pdc_image_create(char *bytes) {
 }
 
 void pdc_image_print(struct pdc_image *image, FILE *stream) {
-    fprintf(stream, "%d %d %d\n", image->version, image->viewbox.w, image->viewbox.h);
-    fprintf(stream, "%d\n", image->command_list.num_commands);
+    fprintf(stream, "v:%d w:%d h:%d n:%d\n", image->version, image->viewbox.w, image->viewbox.h, image->command_list.num_commands);
 
     for (size_t i = 0; i < image->command_list.num_commands; i++) {
         struct pdc command = image->command_list.commands[i];
         fprintf(stream, "\tpdc %ld: ", i);
-        prv_print_pdc(&command, stream);
+        prv_print_pdc(&command, stream, 2);
     }
 }
 
@@ -83,16 +91,16 @@ struct pdc_seq *pdc_seq_create(char *bytes) {
 }
 
 void pdc_seq_print(struct pdc_seq *seq, FILE *stream) {
-    fprintf(stream, "%d %d %d\n", seq->version, seq->viewbox.w, seq->viewbox.h);
-    fprintf(stream, "%d %d\n", seq->play_count, seq->frame_count);
+    fprintf(stream, "v:%d w:%d h:%d\n", seq->version, seq->viewbox.w, seq->viewbox.h);
+    fprintf(stream, "p:%d f:%d\n", seq->play_count, seq->frame_count);
 
     for (size_t i = 0; i < seq->frame_count; i++) {
         struct pdc_frame frame = seq->frames[i];
-        fprintf(stream, "frame %ld: %d\n", i, frame.duration);
+        fprintf(stream, "\tframe %ld: d:%d c:%d\n", i, frame.duration, frame.command_list.num_commands);
         for (size_t j = 0; j < frame.command_list.num_commands; j++) {
             struct pdc command = frame.command_list.commands[j];
-            fprintf(stream, "\tpdc %ld: ", j);
-            prv_print_pdc(&command, stream);
+            fprintf(stream, "\t\tpdc %ld: ", j);
+            prv_print_pdc(&command, stream, 3);
         }
     }
 }
