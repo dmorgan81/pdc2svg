@@ -11,13 +11,40 @@ struct svg {
     FILE *stream;
 };
 
-struct svg *svg_create(FILE *stream, int16_t w, int16_t h) {
+struct svg *svg_create(FILE *stream, int16_t w, int16_t h, int16_t frame_count, int16_t play_count) {
     struct svg *svg = talloc(NULL, struct svg);
     svg->stream = stream;
 
     fprintf(stream, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
     fprintf(stream, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" ");
-    fprintf(stream, " viewBox=\"0 0 %d %d\" width=\"%d\" height=\"%d\">\n", w, h, w, h);
+    fprintf(stream, " viewBox=\"0 0 %d %d\" width=\"%d\" height=\"%d\"", w, h, w, h);
+    if (play_count != 0) fprintf(stream, " onload=\"StartAnimation(evt)\"");
+    fprintf(stream, ">\n");
+
+    if (play_count != 0) {
+        fprintf(stream, "<script type=\"application/javascript\"><![CDATA[\n");
+        fprintf(stream, "var i = 0;\n");
+        fprintf(stream, "var frameCount = %d;\n", frame_count);
+        fprintf(stream, "var playCount = %d;\n", play_count);
+        fprintf(stream, "var groups = [];\n");
+        fprintf(stream, "function StartAnimation(evt) {\n");
+        fprintf(stream, "\tif (playCount === 0) return;\n");
+        fprintf(stream, "\tgroups = document.getElementsByTagName('g');\n");
+        fprintf(stream, "\tgroups[0].style.display = 'inline';\n");
+        fprintf(stream, "\twindow.setTimeout(Animate, groups[0].dataset.duration);\n");
+        fprintf(stream, "}\n");
+        fprintf(stream, "function Animate() {\n");
+        fprintf(stream, "\tgroups[i++].style.display = 'none';\n");
+        fprintf(stream, "\tif (i === frameCount && playCount !== 0) {\n");
+        fprintf(stream, "\t\ti = 0;\n");
+        fprintf(stream, "\t\tif (playCount !== -1) playCount -= 1;\n");
+        fprintf(stream, "\t}\n");
+        fprintf(stream, "\tif (playCount === 0) return;\n");
+        fprintf(stream, "\tgroups[i].style.display = 'inline';\n");
+        fprintf(stream, "\twindow.setTimeout(Animate, groups[i].dataset.duration);\n");
+        fprintf(stream, "}\n");
+        fprintf(stream, "]]></script>\n");
+    }
 
     return svg;
 }
@@ -133,10 +160,10 @@ struct svg_g {
     FILE *stream;
 };
 
-struct svg_g *svg_create_g(struct svg *svg, int16_t y) {
+struct svg_g *svg_create_g(struct svg *svg, uint16_t duration) {
     struct svg_g *g = talloc(svg, struct svg_g);
     g->stream = svg->stream;
-    fprintf(g->stream, "\t<g transform=\"translate(0 %d)\">", y);
+    fprintf(g->stream, "<g style=\"display:none\" data-duration=\"%d\">\n", duration);
     return g;
 }
 

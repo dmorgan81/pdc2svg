@@ -6,7 +6,7 @@
 
 struct svg;
 
-struct svg *svg_create(FILE *stream, int16_t w, int16_t h);
+struct svg *svg_create(FILE *stream, int16_t w, int16_t h, int16_t frame_count, int16_t play_count);
 void svg_finish(struct svg *svg);
 
 struct svg_path;
@@ -31,7 +31,7 @@ void svg_circle_finish(struct svg_circle *circle);
 
 struct svg_g;
 
-struct svg_g *svg_create_g(struct svg *svg, int16_t y);
+struct svg_g *svg_create_g(struct svg *svg, uint16_t duration);
 void svg_g_finish(struct svg_g *g);
 
 #endif

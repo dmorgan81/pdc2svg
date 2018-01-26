@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
         talloc_steal(ctx, image);
         talloc_free(bytes);
 
-        struct svg *svg = svg_create(stdout, image->viewbox.w, image->viewbox.h);
+        struct svg *svg = svg_create(stdout, image->viewbox.w, image->viewbox.h, 0, 0);
         talloc_steal(ctx, svg);
 
         prv_output_command_list_to_svg(&image->command_list, svg);
@@ -108,14 +108,13 @@ int main(int argc, char *argv[]) {
         talloc_steal(ctx, seq);
         talloc_free(bytes);
 
-        int16_t h = seq->viewbox.h * seq->frame_count;
-
-        struct svg *svg = svg_create(stdout, seq->viewbox.w, h);
+        struct svg *svg = svg_create(stdout, seq->viewbox.w, seq->viewbox.h, seq->frame_count, seq->play_count);
         talloc_steal(ctx, svg);
 
         for (size_t i = 0; i < seq->frame_count; i++) {
-            struct svg_g *g = svg_create_g(svg, i * seq->viewbox.h);
-            prv_output_command_list_to_svg(&seq->frames[i].command_list, svg);
+            struct pdc_frame frame = seq->frames[i];
+            struct svg_g *g = svg_create_g(svg, frame.duration);
+            prv_output_command_list_to_svg(&frame.command_list, svg);
             svg_g_finish(g);
             talloc_free(g);
         }
