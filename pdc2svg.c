@@ -35,7 +35,7 @@ static char *prv_read_bytes(void *ctx, FILE *fp, char *name) {
     return bytes;
 }
 
-static void prv_output_command_list_to_svg(struct pdc_list *list, struct svg *svg) {
+static void prv_output_command_list_to_svg(struct pdc_list *list, struct svg *svg, bool close) {
     for (size_t i = 0; i < list->num_commands; i++) {
         struct pdc command = list->commands[i];
 
@@ -53,6 +53,7 @@ static void prv_output_command_list_to_svg(struct pdc_list *list, struct svg *sv
                 svg_path_line_to(path, points[j].x / scale, points[j].y / scale);
             }
             svg_path_finish(path, command.path_open_or_radius & 1);
+            if (close) svg_path_close(path);
             talloc_free(path);
         } else if (command.type == CommandTypeCircle) {
             struct point point = command.points[0];
@@ -62,6 +63,7 @@ static void prv_output_command_list_to_svg(struct pdc_list *list, struct svg *sv
             svg_circle_stroke_width(circle, command.stroke_width);
             svg_circle_mark_hidden(circle, command.flags & 1);
             svg_circle_finish(circle);
+            if (close) svg_circle_close(circle);
             talloc_free(circle);
         }
     }
@@ -97,7 +99,7 @@ int main(int argc, char *argv[]) {
         struct svg *svg = svg_create(stdout, image->viewbox.w, image->viewbox.h);
         talloc_steal(ctx, svg);
 
-        prv_output_command_list_to_svg(&image->command_list, svg);
+        prv_output_command_list_to_svg(&image->command_list, svg, true);
 
         svg_finish(svg);
 
@@ -107,7 +109,22 @@ int main(int argc, char *argv[]) {
         struct pdc_seq *seq = pdc_seq_create(bytes);
         talloc_steal(ctx, seq);
         talloc_free(bytes);
-        pdc_seq_print(seq, stdout);
+
+        int16_t h = seq->viewbox.h * seq->frame_count;
+
+        struct svg *svg = svg_create(stdout, seq->viewbox.w, h);
+        talloc_steal(ctx, svg);
+
+        for (size_t i = 0; i < seq->frame_count; i++) {
+            struct svg_g *g = svg_create_g(svg, i * seq->viewbox.h);
+            prv_output_command_list_to_svg(&seq->frames[i].command_list, svg, true);
+            svg_g_finish(g);
+            talloc_free(g);
+        }
+
+        svg_finish(svg);
+
+        //pdc_seq_print(seq, stdout);
     } else {
         fprintf(stderr, "Not a PDC file: %s\n", argv[1]);
         fclose(fp);

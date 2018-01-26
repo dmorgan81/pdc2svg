@@ -90,7 +90,11 @@ void svg_path_finish(struct svg_path *path, bool open) {
         talloc_free(path->d);
         path->d = NULL;
     }
-    fprintf(path->stream, " />\n");
+    fprintf(path->stream, ">\n");
+}
+
+void svg_path_close(struct svg_path *path) {
+    fprintf(path->stream, "</path>\n");
 }
 
 struct svg_circle {
@@ -133,5 +137,24 @@ void svg_circle_mark_hidden(struct svg_circle *circle, bool hidden) {
 }
 
 void svg_circle_finish(struct svg_circle *circle) {
-    fprintf(circle->stream, " />\n");
+    fprintf(circle->stream, ">\n");
+}
+
+void svg_circle_close(struct svg_circle *circle) {
+    fprintf(circle->stream, "</circle>\n");
+}
+
+struct svg_g {
+    FILE *stream;
+};
+
+struct svg_g *svg_create_g(struct svg *svg, int16_t y) {
+    struct svg_g *g = talloc(svg, struct svg_g);
+    g->stream = svg->stream;
+    fprintf(g->stream, "\t<g transform=\"translate(0 %d)\">", y);
+    return g;
+}
+
+void svg_g_finish(struct svg_g *g) {
+    fprintf(g->stream, "</g>");
 }
