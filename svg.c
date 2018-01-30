@@ -16,8 +16,8 @@ struct svg *svg_create(FILE *stream, int16_t w, int16_t h, int16_t frame_count, 
     svg->stream = stream;
 
     fprintf(stream, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
-    fprintf(stream, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" ");
-    fprintf(stream, " viewBox=\"0 0 %d %d\" width=\"%d\" height=\"%d\"", w, h, w, h);
+    fprintf(stream, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" preserveAspectRatio=\"xMidYMid\"");
+    fprintf(stream, " viewBox=\"%d %d %d %d\" width=\"%d\" height=\"%d\"", -w/2, -h/2, w * 2, h * 2, w * 3, h * 3);
     if (play_count != 0) fprintf(stream, " onload=\"StartAnimation(evt)\"");
     fprintf(stream, ">\n");
 
